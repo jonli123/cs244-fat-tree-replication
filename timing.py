@@ -287,7 +287,7 @@ def test_random(graph, k):
 
 
 
-k = 8
+k = 4
 g = build_fat_tree(k)
 #print(g.edge_count())
 #print (4 * k * (k // 2) ** 2)
