@@ -10,6 +10,11 @@ class Graph:
 		self.vertices = {}
 		self.edges = {}
 		self.ticks = 0
+		self.k = -1
+		self.X = -1
+		self.Y = -1
+		self.Z = -1
+		self.END = -1
 
 	def add_vertices(self, vertex_list):
 		for v in vertex_list:
@@ -77,7 +82,41 @@ class Graph:
 					queue.append(temp)
 		return answers
 
-				
+
+	def get_pod(self, vertex):
+		return ((vertex - self.Z) // (self.k // 2)) // (self.k // 2) 
+
+
+	def get_switch_from_server(self, vertex, pod):
+		z_index = (vertex - self.Z) // (self.k // 2)
+		return self.Y + z_index
+
+
+	def get_switch_from_core(self, core, pod):
+		half_k = self.k // 2
+		core_index = core // half_k
+		return self.X + (pod * half_k) + core_index
+
+	def get_core_path(self, core, v1, v2):
+		pod1 = self.get_pod(v1)
+		pod2 = self.get_pod(v2)
+		top_switch_1 = self.get_switch_from_core(core, pod1)
+		top_switch_2 = self.get_switch_from_core(core, pod2)
+		bottom_switch_1 = self.get_switch_from_server(v1, pod1)
+		bottom_switch_2 = self.get_switch_from_server(v2, pod2)
+		return [v1, bottom_switch_1, top_switch_1, core, top_switch_2, bottom_switch_2, v2]
+
+	def get_path_linear_cores(self, v1, v2):
+		assert(v1 != v2)
+		if (self.get_pod(v1) == self.get_pod(v2)):
+			return None
+		for i in range (0, (self.k ** 2) // 4):
+			path = self.get_core_path(i, v1, v2)
+			if self.is_path_free(path):
+				#print(path)
+				self.reserve_path(path)
+				return path
+		return None
 
 
 	def add_edge(self, e):
@@ -194,6 +233,7 @@ def fat_tree_host_end(k):
 #TODO may need to infer port numbers, or add them in to the model
 def build_fat_tree(k):
 	g = Graph()
+	g.k = k
 
 
 
@@ -217,6 +257,11 @@ def build_fat_tree(k):
 	Y = X + (k ** 2) // 2
 	Z = Y + (k ** 2) // 2
 	END = Z + (k ** 3) // 4 #not inclusive
+
+	g.X = X
+	g.Y = Y
+	g.Z = Z
+	g.END = END
 	g.add_vertices(range(END))
 
 
@@ -287,21 +332,46 @@ def test_random(graph, k):
 
 
 
-k = 4
-g = build_fat_tree(k)
-#print(g.edge_count())
-#print (4 * k * (k // 2) ** 2)
-#g.print_degree()
-#assert(g.edge_count() == 4 * k * (k // 2) ** 2)
+#g4 = build_fat_tree(4)
+#g16 = build_fat_tree(16)
+#g24 = build_fat_tree(24)
+#g32 = build_fat_tree(32)
+#g48 = build_fat_tree(48)
+#print ("Done building")
 
-#g.print_graph()
-print ("Done building")
-#print (g.pair_shortest_paths(30, 21))
 
-#paths = g.pair_shortest_paths(24, 25)
-#path = paths[0]
-test_random(g, k)
 
-#print("Exists edge (0, 1): {}".format(g.exists_edge((0, 1))))
 
-#print("Exists no edge (0, 2): {}".format(g.exists_edge((0, 2))))
+
+
+def timer(k):
+	from timeit import default_timer as timer
+	g = build_fat_tree(k)
+	completed = 0
+	time = 0.0
+
+	for iterations in range(10000):
+		#if iterations % 100 == 0:
+			#print("Iterations done: {}".format(iterations))
+		v1 = random.choice(range(fat_tree_host_start(k), fat_tree_host_end(k)))
+		v2 = random.choice(range(fat_tree_host_start(k), fat_tree_host_end(k)))
+		if v1 == v2:
+			continue
+
+		start = timer()
+		g.get_path_linear_cores(v1, v2)
+		end = timer()
+		time += end - start
+		completed += 1
+
+	print ("For k = {}, average time: {}".format(k, time / completed))
+
+
+timer(4)
+timer(16)
+timer(24)
+timer(32)
+timer(48)
+timer(64)
+timer(80)
+timer(96)
