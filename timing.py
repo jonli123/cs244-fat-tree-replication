@@ -1,6 +1,6 @@
 import networkx as nx
 from collections import deque
-
+import random
 
 #generate a fat tree
 
@@ -18,17 +18,34 @@ class Graph:
 	def get_neighbors(self, vertex):
 		return self.vertices[vertex].neighbors
 
-	def reserve_path(self, path):
-		v1 = self.vertices[path[0]]
-		v2 = self.vertices[path[len(path) - 1]]
+
+	def is_path_free(self, path):
 		for i in range(len(path) - 1):
 			e1 = (path[i], path[i+1])
 			e2 = (path[i+1], path[i])
 			if e1 in self.edges:
 				e = self.edges[e1]
+				if e.reserved:
+					return False
+			else:
+				e = self.edges[e2]
+				if e.reserved:
+					return False
+		return True
+
+	def reserve_path(self, path):
+		#v1 = self.vertices[path[0]]
+		#v2 = self.vertices[path[len(path) - 1]]
+		for i in range(len(path) - 1):
+			e1 = (path[i], path[i+1])
+			e2 = (path[i+1], path[i])
+			if e1 in self.edges:
+				e = self.edges[e1]
+				#print(path)
 				e.set_reserved()
 			else:
 				e = self.edges[e2]
+				#print(path)
 				e.set_reserved()
 			#TODO need to readd to map?
 
@@ -59,6 +76,7 @@ class Graph:
 					temp.append(y)
 					queue.append(temp)
 		return answers
+
 				
 
 
@@ -137,6 +155,7 @@ class Node:
 
 
 
+
 class Edge:
 	def __init__(self, e):
 		self.first = e[0]
@@ -150,6 +169,8 @@ class Edge:
 	def __hash__(self):
 		return hash((self.first, self.second))
 	def set_reserved(self):
+		if self.reserved:
+			print("First: {}. Second: {}".format(self.first, self.second))
 		assert(not self.reserved)
 		self.reserved = True
 
@@ -230,10 +251,43 @@ def build_fat_tree(k):
 
 
 
+def test_random(graph, k):
+	hosts_in_use = set()
+	start = fat_tree_host_start(k)
+	end = fat_tree_host_end(k)
+	hosts_not_in_use = set(range(start, end))
+	z  = 0
+	for i in range(start, end):
+		print("Starting {}".format(z))
+		z += 1
+		if i not in hosts_not_in_use:
+			continue
+		hosts_not_in_use.remove(i)
+		target = random.choice(tuple(hosts_not_in_use))
+		paths = graph.pair_shortest_paths(i, target)
+		success = False
+		for path in paths:
+			if graph.is_path_free(path):
+				graph.reserve_path(path)
+				success = True
+				break
+		if success:
+			hosts_not_in_use.remove(target)
+		else:
+			hosts_not_in_use.add(i)
+	total_hosts = end - start
+	print ("A total of {} hosts connected out of {} total hosts.".format(total_hosts - len(hosts_not_in_use), total_hosts))
+
+				
 
 
 
-k = 4
+
+
+
+
+
+k = 8
 g = build_fat_tree(k)
 #print(g.edge_count())
 #print (4 * k * (k // 2) ** 2)
@@ -244,9 +298,9 @@ g = build_fat_tree(k)
 print ("Done building")
 #print (g.pair_shortest_paths(30, 21))
 
-paths = g.pair_shortest_paths(24, 25)
-path = paths[0]
-g.reserve_path(path)
+#paths = g.pair_shortest_paths(24, 25)
+#path = paths[0]
+test_random(g, k)
 
 #print("Exists edge (0, 1): {}".format(g.exists_edge((0, 1))))
 
