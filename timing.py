@@ -350,7 +350,7 @@ def timer(k):
 	completed = 0
 	time = 0.0
 
-	for iterations in range(10000):
+	for iterations in range(100):
 		#if iterations % 100 == 0:
 			#print("Iterations done: {}".format(iterations))
 		v1 = random.choice(range(fat_tree_host_start(k), fat_tree_host_end(k)))
@@ -367,11 +367,12 @@ def timer(k):
 	print ("For k = {}, average time: {}".format(k, time / completed))
 
 
-timer(4)
-timer(16)
-timer(24)
-timer(32)
-timer(48)
+#timer(4)
+#timer(16)
+#timer(24)
+#timer(32)
+#timer(48)
 timer(64)
 timer(80)
 timer(96)
+#timer(128)
